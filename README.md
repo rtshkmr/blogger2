@@ -59,6 +59,28 @@ Doing [This Odin Project task](https://www.theodinproject.com/courses/web-develo
       - [4. An Interface for Tagging Articles](#4-an-interface-for-tagging-articles)
       - [5. Adding Tags to Our Display](#5-adding-tags-to-our-display)
       - [6. Listing Articles by Tag](#6-listing-articles-by-tag)
+  - [Using Gems](#using-gems)
+    - [The paperclip library](#the-paperclip-library)
+      - [1. Using the Gemfile to Setup a RubyGEm](#1-using-the-gemfile-to-setup-a-rubygem)
+      - [2. Setting up The Database for Paperclip](#2-setting-up-the-database-for-paperclip)
+      - [3. Add to the Article Model](#3-add-to-the-article-model)
+      - [4. Modifying the Form Template](#4-modifying-the-form-template)
+      - [5. Improving the Form (seems like latest gem version aldy does this automatically)](#5-improving-the-form-seems-like-latest-gem-version-aldy-does-this-automatically)
+      - [6. Allowing Multiple Image Attachements [HELP I CAN'T DO THIS :(]](#6-allowing-multiple-image-attachements-help-i-cant-do-this)
+      - [7. SASS examples](#7-sass-examples)
+      - [8. Working with Layouts: how to manually set layouts](#8-working-with-layouts-how-to-manually-set-layouts)
+  - [Implementing Authentication](#implementing-authentication)
+    - [Steps:](#steps-3)
+      - [1. Install by Adding to Gemfile](#1-install-by-adding-to-gemfile)
+      - [2. Running the Generator (automates the model creation and data migration...)](#2-running-the-generator-automates-the-model-creation-and-data-migration)
+      - [3. Creating a First Account](#3-creating-a-first-account)
+      - [4. Logging In](#4-logging-in)
+      - [5. Securing New Users](#5-securing-new-users)
+  - [Heroku Deployment](#heroku-deployment)
+    - [Steps:](#steps-4)
+      - [1. Create Heroku Application](#1-create-heroku-application)
+      - [2. Config App by changing Gemfile to prevent sqlite3](#2-config-app-by-changing-gemfile-to-prevent-sqlite3)
+      - [3. Config Root Route](#3-config-root-route)
   - [More Important Takeaways &amp; Reminders](#more-important-takeaways-amp-reminders)
 
 # Actual README
@@ -507,7 +529,181 @@ Creating an HTML form to submit the article, then backend processing to get it i
 #### 6. Listing Articles by Tag
 
 - the links to the tags should list articles by Tag, so we need to add an action for that, and a corresponding template (justupdate the show template)
-- 
+
+## Using Gems
+
+### The `paperclip` library
+
+Library that manages file attachments and uploading
+
+#### 1. Using the Gemfile to Setup a RubyGEm
+
+- old way: using zip or tar files. but this isn't easy to just upgrade to newer versions
+- now we have Rails plugins as gems.
+- RubyGems is akin to apt or RPM... a package manager
+- Add `gem "paperclip"` to the Gemfile of the project
+- Install `ImageMagick` via apt (ensure it's there)
+- Stop running server, run `bundle` to install the required Gem(s) and the restart the server
+
+#### 2. Setting up The Database for Paperclip
+
+- for now, just say that the article can have **zero or one** image, just for demo sake
+- Add some fields to Article model to hold the uploaded image, rmb to run a migration
+
+  - it's a one-liner: `bin/rails generate migration add_paperclip_fields_to_article`
+
+- udpate the `change` method inside the `_add_paperclip_fields_to_article.rb` file and then run a migration by doing `rake db:migrate`
+
+#### 3. Add to the Article Model
+
+- `has_attached_file` is a method from the paperclip lib. Allows paperclip to understand that the Article model should accept a file attachment and that there are fields to store info about that file which start with `image_`
+- required to include a content_type validation, a file_name validation, or to explicitly state that they’re not going to have either.
+
+  - if not, you get `MissingRequiredValidatorError` error
+
+- also, deal w **mass assignment** and **strong parameters** by updating the `article_params` method to permit images
+
+#### 4. Modifying the Form Template
+
+- so we can upload file while editing the article
+- add the image display to the article show template, update the form partial template:
+  1.  Allow the **form** to accept **_multipart_** data.
+  2.  Add a label and a field for file uploading before the save button
+- update the article show view to display the image before the body of the article is placed
+
+#### 5. Improving the Form (seems like latest gem version aldy does this automatically)
+
+- in the form, allow the file_field to indicate whether a file has been updated and if so, which file has been updated
+
+#### 6. Allowing Multiple Image Attachements [HELP I CAN'T DO THIS :(]
+
+- a model(here, it's an Article) can have multiple attachements.
+- Create a new model, call it "Attachment"
+
+#### 7. SASS examples
+
+- can just add style sheets and name it `style.css.scss` and Rails will handle the referencing to that sheet thanks to Rails' default layout
+
+#### 8. Working with Layouts: how to manually set layouts
+
+- in each template, add a reference style like so:
+
+  - `<%= stylesheet_link_tag 'styles' %>`
+  - this finds the stylesheet with the tag 'styles'
+  - but this is **unnecessarily repetitive** so we look to using layouts
+
+- see `app/views/layouts/application.html.erb`
+  - Whatever code is in the individual view template gets inserted into the layout where you see the `yield`. Using layouts makes it easy to add site-wide elements like navigation, sidebars, and so forth.
+  - this layout points to `app/assets/stylesheets/application.css` asindicated by the `stylesheet_link_tag` line
+
+## Implementing Authentication
+
+### Steps:
+
+common but complicated authentication gems:
+
+- [Authlogic](https://github.com/binarylogic/authlogic/)
+- [Merchant (with tutorial)](http://tutorials.jumpstartlab.com/projects/merchant.html)
+- [Devise](https://github.com/plataformatec/devise)
+- [Sorcery: lightweight and easy to use gem](https://github.com/NoamB/sorcery)
+
+#### 1. Install by Adding to Gemfile
+
+- rmb to restart Rails server each time you update the Gemfile
+- use `rails generate` to check which and if all gems installed properly
+
+#### 2. Running the Generator (automates the model creation and data migration...)
+
+- the plugin gives a generator that creates a model that represents our user and the required data migrations to support authentication
+- just run the default generator:
+  - `bin/rails generate sorcery:install --model=Author`
+  - revise the SourceryCore migration that the generator has created, add/remove fields that you need in the database here
+  - then do the database migration migration: `bin/rake db:migrate`
+
+#### 3. Creating a First Account
+
+- we could choose to use the console and create users and test the workflow, but noooo
+- create and test our form-based workflow by creating a user through it
+- we need to add CRUD support for our Author model!
+  **_To this, instead of doing it manually, allow rails to generate the scaffolds_** :
+  `bin/rails generate scaffold_controller Author username:string email:string password:password password_confirmation:password`
+
+  - used scaffold_controller because Sorcery aldy defined for us an author model
+
+  - rails has two scaffolds generators:
+
+    - `scaffold`: generates the model, controller and views
+    - `scaffold_controller`:generate the controller and views
+
+  - scaffold generator didn't know that we want our password field and password confirmation field to use a password text entry, so we have to
+    update `authors/_form.html.erb` and change the field type
+
+  - allow for checking for password and password confirmation fields in that form. Add the `validates_confirmation_of` method call to the Author model itself
+  - note that `password` and `password_confirmation` fields are **virtual attributes**. Sorcery uses given password along with the auto generated `salt` value to create and store the `crypted_password`
+
+  - need to update `routes.rb` to add a resource for our Authors
+  - remove hash and salt from author view > show and index templates
+
+  - add footer to `app/views/layouts/application.html.erb` so that there's a login status at the footer
+
+#### 4. Logging In
+
+- need to build the actual endpoints for logging in and out, meaning **controller actions**:
+
+  - **AuthorSessions** controller with these actions:
+    - new
+    - create
+    - destroy
+  - generate controller w rails generator and add the respective methods
+
+- create new view template for the `new` action that will contain the login form
+
+- config the routes to include the author_sessions ressources
+
+- update the `app/views/layouts/application.html.erb` to include login page links in the footer layout
+
+-
+
+#### 5. Securing New Users
+
+- Let’s add in a protection scheme like this to the new users form:
+
+  - If there are zero users in the system, let anyone access the form
+  - If there are more than zero users registered, only users already logged in can access this form
+
+  That way when the app is first setup we can create an account, then new users can only be created by a logged in user.
+
+- `before_filter` method that runs beforethe `new` and `create` actions of `authors_controller.rb`
+
+
+## Heroku Deployment
+
+### Steps: 
+
+#### 1. Create Heroku Application
+
+- `heroku create` 
+
+#### 2. Config App by changing Gemfile to prevent sqlite3
+
+- delete `gem 'sqlite3'`
+  ``` ruby
+  group :development, :test do
+  gem 'sqlite3'
+  end
+
+  group :production do
+    gem 'pg'
+  end
+  ```
+
+- ofc after Gemfile change, update bundle
+
+#### 3. Config Root Route
+
+- edit `routes.rb` to set our root route if haven't. 
+  - `root 'cars#index'` <--- example of what the root route should point at
+
 
 ## More Important Takeaways & Reminders
 
@@ -546,5 +742,35 @@ Creating an HTML form to submit the article, then backend processing to get it i
   - `<%= render partial: 'form' %>`
 
 10. Layouts wrap multiple view templates in our application. Layouts can be specific to each controller , but usually we just use one layout that wraps every view template in the application
-    
-11.  [Referential Integrity](https://en.wikipedia.org/wiki/Referential_integrity) has to be enforced for you to be able to delete tags, kiv [this concept for the future](https://guides.rubyonrails.org/association_basics.html)
+
+11. [Referential Integrity](https://en.wikipedia.org/wiki/Referential_integrity) has to be enforced for you to be able to delete tags, kiv [this concept for the future](https://guides.rubyonrails.org/association_basics.html)
+
+12) **_Asset Pipeline_** Principle: a `require_tree` method auto loads all the stylesheets in the current directory, and includes them in `application.css`
+
+13) **Virtual Attributes** in forms
+
+14. **_manage security:_**
+
+- **before filters** runs before new and create but I don't know where to put it in its controller
+
+  ```ruby
+  before_filter :zero_authors_or_authenticated, only: [:new, :create]
+
+  def zero_authors_or_authenticated
+    unless Author.count == 0 || current_user
+      redirect_to root_path
+      return false
+    end
+  end
+  ```
+
+* also, _control which links can be seen_ when like so:
+
+  ```ruby
+  <% if logged_in? %>
+
+    <%= link_to "delete", article_path(@article), method: :delete , data: {confirm: "you sure you want to delete the post bruh??"}%>
+    <%= link_to "edit", edit_article_path(@article) %>
+
+  <% end %>
+  ```
